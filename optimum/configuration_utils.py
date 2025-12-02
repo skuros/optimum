@@ -24,7 +24,11 @@ from packaging import version
 from transformers import PretrainedConfig
 from transformers import __version__ as transformers_version_str
 from transformers.dynamic_module_utils import custom_object_save
-from transformers.utils import cached_file, download_url, extract_commit_hash, is_remote_url
+try:
+    from transformers.utils import cached_file, download_url, extract_commit_hash, is_remote_url
+except ImportError:  # transformers >= 4.56
+    from transformers.utils import cached_file, extract_commit_hash, is_remote_url
+    from transformers.utils.download import download_url
 
 from .utils import logging
 from .version import __version__
