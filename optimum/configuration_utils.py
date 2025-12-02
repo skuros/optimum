@@ -18,17 +18,53 @@ import copy
 import json
 import os
 import re
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union, Optional
 
 from packaging import version
 from transformers import PretrainedConfig
 from transformers import __version__ as transformers_version_str
 from transformers.dynamic_module_utils import custom_object_save
+from typing import Optional
+
+from pathlib import Path
+from typing import Optional
+from urllib.parse import urlparse
+
 try:
     from transformers.utils import cached_file, download_url, extract_commit_hash, is_remote_url
-except ImportError:  # transformers >= 4.56
-    from transformers.utils import cached_file, extract_commit_hash, is_remote_url
-    from transformers.utils.download import download_url
+except ImportError:
+    from transformers.utils import cached_file, extract_commit_hash  # still there
+
+    try:
+        from transformers.utils.hub import download_url, is_remote_url  # older nightlies
+    except ImportError:
+        # final fallback: define minimal helpers locally
+        import requests
+
+        def download_url(
+            url: str,
+            output_path: str,
+            *,
+            proxies: Optional[dict] = None,
+            resume_size: int = 0,
+            timeout: int = 30,
+        ) -> None:
+            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+            headers = {}
+            if resume_size:
+                headers["Range"] = f"bytes={resume_size}-"
+
+            with requests.get(url, stream=True, proxies=proxies, headers=headers, timeout=timeout) as resp:
+                resp.raise_for_status()
+                mode = "ab" if resume_size else "wb"
+                with open(output_path, mode) as fp:
+                    for chunk in resp.iter_content(chunk_size=1 << 20):
+                        if chunk:
+                            fp.write(chunk)
+
+        def is_remote_url(url: str) -> bool:
+            parsed = urlparse(url)
+            return parsed.scheme in {"http", "https", "ftp"}
 
 from .utils import logging
 from .version import __version__
