@@ -53,6 +53,18 @@ if is_gptqmodel_available():
     from gptqmodel.utils.model import hf_convert_gptq_v1_to_v2_format, hf_convert_gptq_v2_to_v1_format
     from gptqmodel.utils.model import hf_gptqmodel_post_init as gptq_post_init
     from gptqmodel.version import __version__ as gptqmodel_version
+# If gptqmodel is not available, provide a fallback alias so
+# existing code that references QuantizeConfig continues to work.
+else:
+    try:
+        # Use transformers' GPTQConfig as a fallback alias
+        from transformers.utils.quantization_config import GPTQConfig as QuantizeConfig
+    except Exception:
+        QuantizeConfig = None
+
+    # Provide placeholders to avoid NameError if code expects these symbols
+    BACKEND = None
+    exllama_set_max_input_length = None
 
 logger = getLogger(__name__)
 
